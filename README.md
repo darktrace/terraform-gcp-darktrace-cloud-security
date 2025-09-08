@@ -1,5 +1,7 @@
 # Terraform GCP Darktrace Cloud Security
 
+[![Terraform](https://img.shields.io/badge/Terraform-4B0082?logo=terraform)](https://www.terraform.io/)
+
 Terraform modules for creating GCP infrastructure.
 
 ## Prerequisites
