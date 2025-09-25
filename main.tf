@@ -39,9 +39,10 @@ module "cloud_security_gcp" {
 }
 
 module "flow_logs_gcp" {
-  count           = contains(local.formatted_products, "flow_logs_gcp") ? 1 : 0
-  source          = "./modules/product/flow_logs_gcp"
-  organisation_id = var.organisation_id
-  principal       = local.wif_principal
-  project_id      = var.project_id
+  count                  = contains(local.formatted_products, "flow_logs_gcp") ? 1 : 0
+  source                 = "./modules/product/flow_logs_gcp"
+  organisation_id        = var.organisation_id
+  principal              = local.wif_principal
+  project_id             = var.project_id
+  flow_logs_subscription = var.flow_logs_subscription
 }
