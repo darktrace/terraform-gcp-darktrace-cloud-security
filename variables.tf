@@ -24,7 +24,12 @@ variable "aws_account_id" {
 
 variable "customer_id" {
   type        = string
-  description = "The Customer ID of the Customer we are authenticating with"
+  description = "The Customer's Customer ID, used in conjunction with the deployment id to format the WIF principal"
+}
+
+variable "deployment_id" {
+  type        = string
+  description = "The customer's deployment ID, used in the principal for Workload Identity Federation"
 }
 
 variable "products" {

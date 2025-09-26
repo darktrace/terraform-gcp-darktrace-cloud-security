@@ -24,6 +24,7 @@ module "wif_principal_formatter" {
   wip_name       = module.wif.wip_name
   aws_account_id = var.aws_account_id
   customer_id    = var.customer_id
+  deployment_id  = var.deployment_id
   project_number = var.project_number
 }
 
