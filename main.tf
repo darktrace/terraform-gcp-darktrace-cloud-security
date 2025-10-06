@@ -8,8 +8,7 @@ provider "google-beta" {
 }
 
 locals {
-  wif_principal      = module.wif_principal_formatter.principal
-  formatted_products = [for product in var.products : replace(product, "-", "_")]
+  wif_principal = module.wif_principal_formatter.principal
 }
 
 module "wif" {
@@ -32,7 +31,7 @@ module "wif_principal_formatter" {
 ## **PRODUCT CONFIGURATION**
 
 module "cloud_security_gcp" {
-  count           = contains(local.formatted_products, "cloud_security_gcp") ? 1 : 0
+  count           = contains(var.products, "cloud-security-gcp") ? 1 : 0
   source          = "./modules/product/cloud_security_gcp"
   organisation_id = var.organisation_id
   principal       = local.wif_principal
@@ -40,10 +39,27 @@ module "cloud_security_gcp" {
 }
 
 module "flow_logs_gcp" {
-  count                  = contains(local.formatted_products, "flow_logs_gcp") ? 1 : 0
+  count                  = contains(var.products, "flow-logs-gcp") ? 1 : 0
   source                 = "./modules/product/flow_logs_gcp"
   organisation_id        = var.organisation_id
   principal              = local.wif_principal
   project_id             = var.project_id
   flow_logs_subscription = var.flow_logs_subscription
+}
+
+module "cloud_respond_gcp" {
+  count           = contains(var.products, "cloud-respond-gcp") ? 1 : 0
+  source          = "./modules/product/cloud_respond_gcp"
+  organisation_id = var.organisation_id
+  principal       = local.wif_principal
+  project_id      = var.project_id
+  custom_prefix   = var.custom_prefix
+}
+
+module "audit_logs_gcp" {
+  count           = contains(var.products, "audit-logs-gcp") ? 1 : 0
+  source          = "./modules/product/audit_logs_gcp"
+  organisation_id = var.organisation_id
+  principal       = local.wif_principal
+  project_id      = var.project_id
 }

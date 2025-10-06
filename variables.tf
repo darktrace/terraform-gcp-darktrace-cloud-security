@@ -42,3 +42,9 @@ variable "flow_logs_subscription" {
   description = "The path to a vpc flow logs pub / sub subscription. If this is not defined, then dt-managed infrastructure will be created"
   default     = ""
 }
+
+variable "custom_prefix" {
+  type        = string
+  description = "A custom prefix for resources that must be globally unique by name. Used in testing for multiple deployments per organisation"
+  default     = ""
+}
