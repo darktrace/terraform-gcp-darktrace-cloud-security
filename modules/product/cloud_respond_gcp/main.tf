@@ -21,7 +21,12 @@ resource "google_organization_iam_custom_role" "sa_org_response_role" {
   org_id      = var.organisation_id
   title       = "Darktrace Autonomous Response Role"
   description = "Permissions required to perform and revert Autonomous Response Actions"
-  permissions = ["compute.instances.get", "compute.instances.setTags", "compute.firewalls.create", "compute.firewalls.delete"]
+  permissions = ["compute.instances.get", # Describing instances
+    "compute.instances.setTags",          # Setting network tags on instances
+    "compute.firewalls.create",           # Creating VPC firewalls
+    "compute.firewalls.delete",           # Deleting VPC firewalls
+    "compute.networks.updatePolicy",      # Creating + deleting firewalls
+  ]
 }
 
 # Binds the Service Account to the newly created role

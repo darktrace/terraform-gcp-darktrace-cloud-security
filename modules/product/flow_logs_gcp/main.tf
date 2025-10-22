@@ -35,6 +35,23 @@ resource "google_organization_iam_member" "sa_org_browser" {
   member = "serviceAccount:${local.sa_email}"
 }
 
+resource "google_organization_iam_member" "flowlog_configuration_setup" {
+  org_id = var.organisation_id
+  role   = "roles/networkmanagement.admin"
+  member = "serviceAccount:${local.sa_email}"
+}
+# As far as we know, we only need these permissions:
+# networkmanagement.vpcflowlogsconfigs.create
+# networkmanagement.vpcflowlogsconfigs.list
+
+resource "google_organization_iam_member" "network_management_api_enablement" {
+  org_id = var.organisation_id
+  role   = "roles/serviceusage.serviceUsageAdmin"
+  member = "serviceAccount:${local.sa_email}"
+}
+
+
+
 # **DT Managed Infrastructure**
 
 resource "google_pubsub_topic" "flow_logs_topic" {
@@ -54,7 +71,7 @@ resource "google_logging_organization_sink" "flow_logs_org_sink" {
   org_id           = var.organisation_id
   description      = "Routes VPC Flow Logs to Darktrace Flowlogs"
   destination      = "pubsub.googleapis.com/${google_pubsub_topic.flow_logs_topic[0].id}"
-  filter           = "logName:\"logs/compute.googleapis.com%2Fvpc_flows\" -jsonPayload.src_google_service.type=\"GOOGLE_API\" -jsonPayload.dest_google_service.type=\"GOOGLE_API\""
+  filter           = "logName:\"logs/networkmanagement.googleapis.com%2Fvpc_flows\" -jsonPayload.src_google_service.type=\"GOOGLE_API\" -jsonPayload.dest_google_service.type=\"GOOGLE_API\""
   include_children = true
 }
 
