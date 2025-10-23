@@ -15,6 +15,11 @@ output "product_service_accounts" {
 output "project_number" {
   value = var.project_number
 }
+
+output "project_id" {
+  value = var.project_id
+}
+
 output "organisation_id" {
   value = var.organisation_id
 }
