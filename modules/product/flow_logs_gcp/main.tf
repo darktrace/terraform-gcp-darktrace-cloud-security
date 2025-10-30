@@ -5,6 +5,7 @@ locals {
   org_role_id       = "darktrace_flow_analysis_org_role"
   dt_managed        = var.flow_logs_subscription == ""
   flow_logs_project = local.dt_managed ? var.project_id : regex("^projects/([^/]+)/subscriptions/.*$", var.flow_logs_subscription)[0]
+  role_prefix       = var.custom_prefix != "" ? "${var.custom_prefix}." : ""
 }
 
 module "bound_service_account" {
@@ -67,7 +68,7 @@ resource "google_pubsub_subscription" "flow_logs_sub" {
 
 resource "google_logging_organization_sink" "flow_logs_org_sink" {
   count            = local.dt_managed ? 1 : 0
-  name             = "darktrace-flow-logs-sink"
+  name             = "${local.role_prefix}darktrace-flow-logs-sink"
   org_id           = var.organisation_id
   description      = "Routes VPC Flow Logs to Darktrace Flowlogs"
   destination      = "pubsub.googleapis.com/${google_pubsub_topic.flow_logs_topic[0].id}"

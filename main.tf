@@ -45,6 +45,7 @@ module "flow_logs_gcp" {
   principal              = local.wif_principal
   project_id             = var.project_id
   flow_logs_subscription = var.flow_logs_subscription
+  custom_prefix          = var.custom_prefix
 }
 
 module "cloud_respond_gcp" {
