@@ -48,3 +48,9 @@ variable "custom_prefix" {
   description = "A custom prefix for resources that must be globally unique by name. Used in testing for multiple deployments per organisation"
   default     = ""
 }
+
+variable "fai_gcs_bucket" {
+  type        = string
+  description = "The location of a GCS bucket for /Forensic Acquisition & Investigation. If not supplied a bucket will be created."
+  default     = ""
+}

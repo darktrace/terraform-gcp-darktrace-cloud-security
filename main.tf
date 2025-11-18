@@ -64,3 +64,14 @@ module "audit_logs_gcp" {
   principal       = local.wif_principal
   project_id      = var.project_id
 }
+
+module "fai_gcp" {
+  count           = contains(var.products, "cado-gcp") ? 1 : 0
+  source          = "./modules/product/fai_gcp"
+  organisation_id = var.organisation_id
+  principal       = local.wif_principal
+  project_id      = var.project_id
+  project_number  = var.project_number
+  custom_prefix   = var.custom_prefix
+  fai_gcs_bucket  = var.fai_gcs_bucket
+}

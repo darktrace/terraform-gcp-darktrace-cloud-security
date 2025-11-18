@@ -24,6 +24,9 @@ resource "google_organization_iam_custom_role" "sa_org_response_role" {
   permissions = ["compute.instances.get", # Describing instances
     "compute.instances.setTags",          # Setting network tags on instances
     "compute.firewalls.create",           # Creating VPC firewalls
+    "compute.firewalls.list",             # List VPC firewalls
+    "compute.firewalls.get",              # Required for patching firewall rules
+    "compute.firewalls.update",           # Required for patching firewall rules
     "compute.firewalls.delete",           # Deleting VPC firewalls
     "compute.networks.updatePolicy",      # Creating + deleting firewalls
   ]
