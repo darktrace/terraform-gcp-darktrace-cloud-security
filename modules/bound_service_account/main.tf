@@ -16,5 +16,5 @@ resource "google_service_account_iam_member" "sa_role_assignment" {
 resource "google_project_iam_member" "sa_token_role_assignment" {
   project = var.project_id
   role    = "roles/iam.serviceAccountTokenCreator"
-  member  = "serviceAccount:${google_service_account.sa.email}"
+  member  = google_service_account.sa.member
 }

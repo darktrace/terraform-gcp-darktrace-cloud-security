@@ -63,6 +63,7 @@ module "audit_logs_gcp" {
   organisation_id = var.organisation_id
   principal       = local.wif_principal
   project_id      = var.project_id
+  use_pubsub      = var.audit_logs_use_pubsub
 }
 
 module "fai_gcp" {

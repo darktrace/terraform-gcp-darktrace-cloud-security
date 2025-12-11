@@ -54,3 +54,9 @@ variable "fai_gcs_bucket" {
   description = "The location of a GCS bucket for /Forensic Acquisition & Investigation. If not supplied a bucket will be created."
   default     = ""
 }
+
+variable "audit_logs_use_pubsub" {
+  type        = bool
+  description = "Create pubsub logging infrastructure for audit logs"
+  default     = false
+}
