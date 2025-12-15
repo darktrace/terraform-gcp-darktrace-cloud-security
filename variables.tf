@@ -58,5 +58,5 @@ variable "fai_gcs_bucket" {
 variable "audit_logs_use_pubsub" {
   type        = bool
   description = "Create pubsub logging infrastructure for audit logs"
-  default     = false
+  default     = true
 }
