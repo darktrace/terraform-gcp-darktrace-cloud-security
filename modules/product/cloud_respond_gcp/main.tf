@@ -29,6 +29,9 @@ resource "google_organization_iam_custom_role" "sa_org_response_role" {
     "compute.firewalls.update",           # Required for patching firewall rules
     "compute.firewalls.delete",           # Deleting VPC firewalls
     "compute.networks.updatePolicy",      # Creating + deleting firewalls
+    "storage.buckets.get",                # Get a specific storage bucket
+    "storage.buckets.update",             # Update storage buckets (patch)
+    "storage.buckets.setIamPolicy",       # Update storage bucket IAM policy
   ]
 }
 
