@@ -64,6 +64,7 @@ module "audit_logs_gcp" {
   principal       = local.wif_principal
   project_id      = var.project_id
   use_pubsub      = var.audit_logs_use_pubsub
+  custom_prefix   = var.custom_prefix
 }
 
 module "fai_gcp" {
