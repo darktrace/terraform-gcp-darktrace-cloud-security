@@ -23,3 +23,9 @@ variable "custom_prefix" {
   description = "A custom prefix for the organisation sink."
   default     = ""
 }
+
+variable "logging_sink_filter" {
+  type        = string
+  description = "The filter defining which logs will be captured by the logging sink"
+  default     = "logName:\"logs/networkmanagement.googleapis.com%2Fvpc_flows\" AND NOT jsonPayload.src_google_service.type=\"GOOGLE_API\" AND NOT jsonPayload.dest_google_service.type=\"GOOGLE_API\""
+}

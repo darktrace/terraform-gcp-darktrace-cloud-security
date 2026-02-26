@@ -60,3 +60,14 @@ variable "audit_logs_use_pubsub" {
   description = "Create pubsub logging infrastructure for audit logs"
   default     = true
 }
+
+variable "create_core_bucket" {
+  type        = bool
+  description = "Create the core enumeration bucket for resource exports"
+  default     = true
+}
+variable "logging_sink_filter" {
+  type        = string
+  description = "The filter defining which logs will be captured by teh logging sink"
+  default     = "logName:\"logs/networkmanagement.googleapis.com%2Fvpc_flows\" AND NOT jsonPayload.src_google_service.type=\"GOOGLE_API\" AND NOT jsonPayload.dest_google_service.type=\"GOOGLE_API\""
+}

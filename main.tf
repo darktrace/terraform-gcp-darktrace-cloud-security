@@ -31,11 +31,13 @@ module "wif_principal_formatter" {
 ## **PRODUCT CONFIGURATION**
 
 module "cloud_security_gcp" {
-  count           = contains(var.products, "cloud-security-gcp") ? 1 : 0
-  source          = "./modules/product/cloud_security_gcp"
-  organisation_id = var.organisation_id
-  principal       = local.wif_principal
-  project_id      = var.project_id
+  count              = contains(var.products, "cloud-security-gcp") ? 1 : 0
+  source             = "./modules/product/cloud_security_gcp"
+  organisation_id    = var.organisation_id
+  principal          = local.wif_principal
+  project_id         = var.project_id
+  custom_prefix      = var.custom_prefix
+  create_core_bucket = var.create_core_bucket
 }
 
 module "flow_logs_gcp" {
@@ -46,6 +48,7 @@ module "flow_logs_gcp" {
   project_id             = var.project_id
   flow_logs_subscription = var.flow_logs_subscription
   custom_prefix          = var.custom_prefix
+  logging_sink_filter    = var.logging_sink_filter
 }
 
 module "cloud_respond_gcp" {

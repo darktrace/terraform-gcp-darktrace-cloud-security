@@ -72,7 +72,7 @@ resource "google_logging_organization_sink" "flow_logs_org_sink" {
   org_id           = var.organisation_id
   description      = "Routes VPC Flow Logs to Darktrace Flowlogs"
   destination      = "pubsub.googleapis.com/${google_pubsub_topic.flow_logs_topic[0].id}"
-  filter           = "logName:\"logs/networkmanagement.googleapis.com%2Fvpc_flows\" -jsonPayload.src_google_service.type=\"GOOGLE_API\" -jsonPayload.dest_google_service.type=\"GOOGLE_API\""
+  filter           = replace(var.logging_sink_filter, "\\u0022", "\"")
   include_children = true
 }
 
