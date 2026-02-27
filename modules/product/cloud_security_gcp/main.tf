@@ -3,6 +3,7 @@ locals {
   sa_display_name = "Darktrace /CLOUD Enumeration"
   sa_email        = module.bound_service_account.sa_email
   role_prefix     = var.custom_prefix != "" ? "${var.custom_prefix}." : ""
+  bucket_prefix   = var.custom_prefix != "" ? "${var.custom_prefix}-" : ""
 }
 
 module "bound_service_account" {
@@ -72,7 +73,7 @@ resource "google_project_iam_binding" "sa_project_cloud_core_bucket_role_binding
 resource "google_storage_bucket" "cloud_core_bucket" {
   count = var.create_core_bucket ? 1 : 0
   # Bucket names must be unique organisation-wide
-  name          = "${local.role_prefix}darktrace-cloud-core-bucket"
+  name          = "${local.bucket_prefix}darktrace-cloud-core-bucket-${var.organisation_id}"
   location      = var.bucket_location
   storage_class = "STANDARD"
 

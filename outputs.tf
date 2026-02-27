@@ -34,3 +34,8 @@ output "fai_investigations_bucket" {
   value       = contains(var.products, "cado-gcp") ? module.fai_gcp[0].fai_gcs_bucket : "not implemented"
   description = "Name of the GCS bucket used by default for /Forensic Acquisition & Investigation"
 }
+
+output "cloud_core_bucket" {
+  value       = var.create_core_bucket ? module.cloud_security_gcp[0].cloud_core_bucket_name : "Not Implemented"
+  description = "Name of the Cloud Security Enumeration Bucket"
+}
