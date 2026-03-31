@@ -36,6 +36,6 @@ output "fai_investigations_bucket" {
 }
 
 output "cloud_core_bucket" {
-  value       = var.create_core_bucket ? module.cloud_security_gcp[0].cloud_core_bucket_name : "Not Implemented"
+  value       = var.create_core_bucket ? module.cloud_security_gcp[0].cloud_core_bucket_name : null
   description = "Name of the Cloud Security Enumeration Bucket"
 }

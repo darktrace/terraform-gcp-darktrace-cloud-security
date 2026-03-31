@@ -71,3 +71,9 @@ variable "logging_sink_filter" {
   description = "The filter defining which logs will be captured by teh logging sink"
   default     = "logName:\"logs/networkmanagement.googleapis.com%2Fvpc_flows\" AND NOT jsonPayload.src_google_service.type=\"GOOGLE_API\" AND NOT jsonPayload.dest_google_service.type=\"GOOGLE_API\""
 }
+
+variable "enable_core_bucket_versioning" {
+  type        = bool
+  description = "Enable versioning on the core bucket. Disabling will disable soft-deletion, allowing for easier tests"
+  default     = true
+}

@@ -29,3 +29,9 @@ variable "create_core_bucket" {
   description = "Create the core enumeration bucket for resource exports"
   default     = false
 }
+
+variable "enable_core_bucket_versioning" {
+  type        = bool
+  description = "Enable versioning on the core bucket. Disabling will disable soft-deletion, allowing for easier tests"
+  default     = true
+}

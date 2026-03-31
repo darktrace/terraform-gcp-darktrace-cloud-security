@@ -17,19 +17,39 @@ module "bound_service_account" {
 resource "google_organization_iam_member" "sa_org_service_usage_consumer" {
   org_id = var.organisation_id
   role   = "roles/serviceusage.serviceUsageConsumer"
-  member = "serviceAccount:${local.sa_email}"
+  member = module.bound_service_account.sa_member
 }
 
 resource "google_organization_iam_member" "sa_org_cloud_assets_viewer" {
   org_id = var.organisation_id
   role   = "roles/cloudasset.viewer"
-  member = "serviceAccount:${local.sa_email}"
+  member = module.bound_service_account.sa_member
 }
 
 resource "google_organization_iam_member" "sa_org_principal_access_bounday_viewer" {
   org_id = var.organisation_id
   role   = "roles/iam.principalAccessBoundaryViewer"
-  member = "serviceAccount:${local.sa_email}"
+  member = module.bound_service_account.sa_member
+}
+
+## Cloud Core Role
+
+# We use a separate role for enumeration from the storage role, as the storage role has a strict condition
+resource "google_organization_iam_custom_role" "sa_org_enumeration_role" {
+  role_id     = "${local.role_prefix}darktrace.cloudCoreEnumerationRole"
+  org_id      = var.organisation_id
+  title       = "Darktrace Cloud Core Enumeration Role"
+  description = "Darktrace Role giving the Core Service Account access to asset API's"
+  permissions = [
+    "compute.backendServices.list" # Extra data for Internal Load Balancers
+  ]
+}
+
+# Binds the Service Account to the newly created role
+resource "google_organization_iam_member" "sa_org_enumeration_assignment" {
+  org_id = var.organisation_id
+  role   = google_organization_iam_custom_role.sa_org_enumeration_role.name
+  member = module.bound_service_account.sa_member
 }
 
 ## Enumeration Bucket Resources
@@ -80,7 +100,7 @@ resource "google_storage_bucket" "cloud_core_bucket" {
   uniform_bucket_level_access = true
 
   versioning {
-    enabled = true
+    enabled = var.enable_core_bucket_versioning
   }
 
   lifecycle_rule {
