@@ -1,15 +1,6 @@
-variable "organisation_id" {
-  type        = string
-  description = "The organisation in which the target project resides"
-}
 variable "project_id" {
   type        = string
   description = "Target install project ID"
-}
-
-variable "project_number" {
-  type        = string
-  description = "Target install Project number"
 }
 
 variable "region" {

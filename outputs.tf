@@ -14,7 +14,7 @@ output "product_service_accounts" {
   )
 }
 output "project_number" {
-  value = var.project_number
+  value = local.project_number
 }
 
 output "project_id" {
@@ -22,7 +22,7 @@ output "project_id" {
 }
 
 output "organisation_id" {
-  value = var.organisation_id
+  value = local.organisation_id
 }
 
 output "flowlogs_dt_managed" {
