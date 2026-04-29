@@ -13,6 +13,12 @@ module "bound_service_account" {
   service_account_display_name = local.sa_display_name
 }
 
+resource "google_organization_iam_member" "sa_org_deny_admin" {
+  org_id = var.organisation_id
+  role   = "roles/iam.denyAdmin"
+  member = module.bound_service_account.sa_member
+}
+
 ## RESPOND ACTION PERMS
 ## Creating a role for Respond to test development functionality relative to soft deletion
 
