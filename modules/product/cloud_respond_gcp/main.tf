@@ -39,7 +39,10 @@ resource "google_organization_iam_custom_role" "sa_org_response_role" {
     "storage.buckets.update",             # Update storage buckets (patch)
     "storage.buckets.setIamPolicy",       # Update storage bucket IAM policy
     "iam.roles.get",                      # Get an IAM role
-    "iam.roles.update"                    # Update IAM role
+    "iam.roles.update",                   # Update IAM role
+    "iam.serviceAccounts.actAs",          # Required for patching services
+    "run.services.get",                   # Get a cloud service
+    "run.services.update",                # Update a cloud service
   ]
 }
 
