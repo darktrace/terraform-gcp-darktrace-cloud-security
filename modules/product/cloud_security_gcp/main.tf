@@ -41,8 +41,13 @@ resource "google_organization_iam_custom_role" "sa_org_enumeration_role" {
   title       = "Darktrace Cloud Core Enumeration Role"
   description = "Darktrace Role giving the Core Service Account access to asset API's"
   permissions = [
-    "compute.backendServices.list", # Extra data for Internal Load Balancers
-    "bigquery.datasets.get"         # Extra data for BigQuery Datasets misconfigurations
+    "compute.backendServices.list",       # Extra data for Internal Load Balancers
+    "bigquery.datasets.get",              # Extra data for BigQuery Datasets misconfigurations
+    "compute.instanceGroups.get",         # Get instance group details
+    "compute.instanceGroups.list",        # Get instances linked to unmanaged instance groups
+    "compute.instanceGroupManagers.get",  # Get managed instance group details
+    "compute.instanceGroupManagers.list", # Get instances linked to managed instance groups
+
   ]
 }
 
