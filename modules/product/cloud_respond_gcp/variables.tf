@@ -8,6 +8,12 @@ variable "project_id" {
   description = "Target install project ID"
 }
 
+variable "allowed_projects" {
+  type        = set(string)
+  description = "The set of allowed projects for scoped deployment, if null then scoped deployment is not used"
+  default     = []
+}
+
 variable "principal" {
   type        = string
   description = "The valid principal that the service account can be impersonated by"

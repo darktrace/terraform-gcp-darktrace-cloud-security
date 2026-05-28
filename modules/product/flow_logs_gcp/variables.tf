@@ -16,12 +16,19 @@ variable "principal" {
 variable "flow_logs_subscription" {
   type        = string
   description = "The path to a vpc flow logs pub / sub subscription. If this is not defined, then dt-managed infrastructure will be created"
+  default     = ""
 }
 
 variable "custom_prefix" {
   type        = string
   description = "A custom prefix for the organisation sink."
   default     = ""
+}
+
+variable "allowed_projects" {
+  type        = set(string)
+  description = "The set of allowed projects for scoped deployment, if null then scoped deployment is not used"
+  default     = []
 }
 
 variable "logging_sink_filter" {

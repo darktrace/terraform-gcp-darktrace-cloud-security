@@ -3,6 +3,10 @@ locals {
   sa_display_name = "Darktrace /CLOUD Audit Logs"
   # add a trailing dot to match GCP recommended syntax
   asset_prefix = var.custom_prefix != "" ? "${var.custom_prefix}." : ""
+  roles = {
+    "logging_private_log_viewer" = "roles/logging.privateLogViewer"
+  }
+  scoped_deployment = length(var.allowed_projects) != 0
 }
 
 module "bound_service_account" {
@@ -15,17 +19,22 @@ module "bound_service_account" {
 
 ## The following Role Assignments are suggested in the GCP Deployment Guide
 ## https://customerportal.darktrace.com/product-guides/main/gcp-deploy-standalone
+## We have deprecated roles/resourcemanager.organizationViewer, as we can get the organisation ID from initial auth config
 
-resource "google_organization_iam_member" "sa_org_viewer" {
-  org_id = var.organisation_id
-  role   = "roles/resourcemanager.organizationViewer"
-  member = module.bound_service_account.sa_member
+resource "google_organization_iam_member" "sa_org_bindings" {
+  # Create no org bindings if scoped, otherwise create all role bindings
+  for_each = local.scoped_deployment ? {} : local.roles
+  org_id   = var.organisation_id
+  role     = each.value
+  member   = module.bound_service_account.sa_member
 }
 
-resource "google_organization_iam_member" "sa_org_priv_logs" {
-  org_id = var.organisation_id
-  role   = "roles/logging.privateLogViewer"
-  member = module.bound_service_account.sa_member
+module "scoped_project_bindings" {
+  source   = "../../scoped_project_bindings"
+  for_each = local.roles
+  role_id  = each.value
+  projects = var.allowed_projects
+  member   = module.bound_service_account.sa_member
 }
 
 # PubSub Infrastructure

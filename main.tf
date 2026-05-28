@@ -8,9 +8,11 @@ provider "google-beta" {
 }
 
 locals {
-  wif_principal   = module.wif_principal_formatter.principal
-  project_number  = data.google_project.target_project.number
-  organisation_id = data.google_project.target_project.org_id
+  wif_principal     = module.wif_principal_formatter.principal
+  allowed_projects  = concat(tolist(var.allowed_projects), [var.project_id])
+  scoped_deployment = length(var.allowed_projects) != 0
+  project_number    = data.google_project.target_project.number
+  organisation_id   = data.google_project.target_project.org_id
 }
 
 data "google_project" "target_project" {
@@ -33,7 +35,6 @@ module "wif_principal_formatter" {
   project_number = local.project_number
 }
 
-
 ## **PRODUCT CONFIGURATION**
 
 module "cloud_security_gcp" {
@@ -43,6 +44,7 @@ module "cloud_security_gcp" {
   principal                     = local.wif_principal
   project_id                    = var.project_id
   custom_prefix                 = var.custom_prefix
+  allowed_projects              = local.allowed_projects
   create_core_bucket            = var.create_core_bucket
   enable_core_bucket_versioning = var.enable_core_bucket_versioning
 }
@@ -59,22 +61,24 @@ module "flow_logs_gcp" {
 }
 
 module "cloud_respond_gcp" {
-  count           = contains(var.products, "cloud-respond-gcp") ? 1 : 0
-  source          = "./modules/product/cloud_respond_gcp"
-  organisation_id = local.organisation_id
-  principal       = local.wif_principal
-  project_id      = var.project_id
-  custom_prefix   = var.custom_prefix
+  count            = contains(var.products, "cloud-respond-gcp") ? 1 : 0
+  source           = "./modules/product/cloud_respond_gcp"
+  organisation_id  = local.organisation_id
+  principal        = local.wif_principal
+  project_id       = var.project_id
+  custom_prefix    = var.custom_prefix
+  allowed_projects = local.allowed_projects
 }
 
 module "audit_logs_gcp" {
-  count           = contains(var.products, "audit-logs-gcp") ? 1 : 0
-  source          = "./modules/product/audit_logs_gcp"
-  organisation_id = local.organisation_id
-  principal       = local.wif_principal
-  project_id      = var.project_id
-  use_pubsub      = var.audit_logs_use_pubsub
-  custom_prefix   = var.custom_prefix
+  count            = contains(var.products, "audit-logs-gcp") ? 1 : 0
+  source           = "./modules/product/audit_logs_gcp"
+  organisation_id  = local.organisation_id
+  principal        = local.wif_principal
+  project_id       = var.project_id
+  use_pubsub       = var.audit_logs_use_pubsub
+  custom_prefix    = var.custom_prefix
+  allowed_projects = local.allowed_projects
 }
 
 module "fai_gcp" {

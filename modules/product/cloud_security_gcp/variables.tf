@@ -13,6 +13,12 @@ variable "principal" {
   description = "The valid principal that the service account can be impersonated by"
 }
 
+variable "allowed_projects" {
+  type        = set(string)
+  description = "The set of allowed projects for scoped deployment, if null then scoped deployment is not used"
+  default     = []
+}
+
 variable "custom_prefix" {
   type        = string
   description = "A custom prefix for resources that must be globally unique by name. Used in testing for multiple deployments per organisation"

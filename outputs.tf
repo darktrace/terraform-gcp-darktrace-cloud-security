@@ -35,6 +35,10 @@ output "fai_investigations_bucket" {
   description = "Name of the GCS bucket used by default for /Forensic Acquisition & Investigation"
 }
 
+output "scoped_deployment" {
+  value = local.scoped_deployment
+}
+
 output "cloud_core_bucket" {
   value       = var.create_core_bucket ? module.cloud_security_gcp[0].cloud_core_bucket_name : null
   description = "Name of the Cloud Security Enumeration Bucket"

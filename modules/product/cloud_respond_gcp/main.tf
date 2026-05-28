@@ -3,6 +3,10 @@ locals {
   sa_display_name = "Darktrace /CLOUD Autonomous Response"
   sa_email        = module.bound_service_account.sa_email
   role_prefix     = var.custom_prefix != "" ? "${var.custom_prefix}." : ""
+  roles = {
+    "response_role" = google_organization_iam_custom_role.sa_org_response_role.name
+  }
+  scoped_deployment = length(var.allowed_projects) != 0
 }
 
 module "bound_service_account" {
@@ -13,14 +17,17 @@ module "bound_service_account" {
   service_account_display_name = local.sa_display_name
 }
 
+# denyAdmin is org-level only — always bound at org regardless of scoping
+# We remove for scoped-deployments
 resource "google_organization_iam_member" "sa_org_deny_admin" {
+  count  = local.scoped_deployment ? 0 : 1
   org_id = var.organisation_id
   role   = "roles/iam.denyAdmin"
   member = module.bound_service_account.sa_member
 }
 
-## RESPOND ACTION PERMS
-## Creating a role for Respond to test development functionality relative to soft deletion
+## RESPOND ACTION PERMS
+## Creating a role for Respond to test development functionality relative to soft deletion
 
 resource "google_organization_iam_custom_role" "sa_org_response_role" {
   role_id     = "${local.role_prefix}darktrace.cloudRespondRole"
@@ -46,9 +53,18 @@ resource "google_organization_iam_custom_role" "sa_org_response_role" {
   ]
 }
 
-# Binds the Service Account to the newly created role
-resource "google_organization_iam_member" "sa_org_response_assignment" {
-  org_id = var.organisation_id
-  role   = google_organization_iam_custom_role.sa_org_response_role.name
-  member = "serviceAccount:${local.sa_email}"
+resource "google_organization_iam_member" "sa_org_binding" {
+  # Create no org bindings if scoped, otherwise create all role bindings
+  for_each = local.scoped_deployment ? {} : local.roles
+  org_id   = var.organisation_id
+  role     = each.value
+  member   = module.bound_service_account.sa_member
+}
+
+module "scoped_project_bindings" {
+  source   = "../../scoped_project_bindings"
+  for_each = local.roles
+  role_id  = each.value
+  projects = var.allowed_projects
+  member   = module.bound_service_account.sa_member
 }

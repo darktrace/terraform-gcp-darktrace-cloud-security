@@ -6,6 +6,13 @@ locals {
   dt_managed        = var.flow_logs_subscription == ""
   flow_logs_project = local.dt_managed ? var.project_id : regex("^projects/([^/]+)/subscriptions/.*$", var.flow_logs_subscription)[0]
   role_prefix       = var.custom_prefix != "" ? "${var.custom_prefix}." : ""
+  roles = {
+    "compute_network_viewer"           = "roles/compute.networkViewer"
+    "browser"                          = "roles/browser"
+    "networkmanagement_admin"          = "roles/networkmanagement.admin"
+    "serviceusage_service_usage_admin" = "roles/serviceusage.serviceUsageAdmin"
+  }
+  scoped_deployment = length(var.allowed_projects) != 0
 }
 
 module "bound_service_account" {
@@ -16,11 +23,6 @@ module "bound_service_account" {
   service_account_display_name = local.sa_display_name
 }
 
-resource "google_organization_iam_member" "sa_org_bindings" {
-  org_id = var.organisation_id
-  role   = "roles/compute.networkViewer"
-  member = "serviceAccount:${local.sa_email}"
-}
 
 # Give subscriber role in the project with the subscription
 resource "google_project_iam_member" "sa_project_pubsub" {
@@ -29,29 +31,24 @@ resource "google_project_iam_member" "sa_project_pubsub" {
   member  = "serviceAccount:${local.sa_email}"
 }
 
-# For iterating through projects, finding subnets
-resource "google_organization_iam_member" "sa_org_browser" {
-  org_id = var.organisation_id
-  role   = "roles/browser"
-  member = "serviceAccount:${local.sa_email}"
-}
-
-resource "google_organization_iam_member" "flowlog_configuration_setup" {
-  org_id = var.organisation_id
-  role   = "roles/networkmanagement.admin"
-  member = "serviceAccount:${local.sa_email}"
-}
-# As far as we know, we only need these permissions:
+# As far as we know, we only need these permissions for service usage admin
 # networkmanagement.vpcflowlogsconfigs.create
 # networkmanagement.vpcflowlogsconfigs.list
-
-resource "google_organization_iam_member" "network_management_api_enablement" {
-  org_id = var.organisation_id
-  role   = "roles/serviceusage.serviceUsageAdmin"
-  member = "serviceAccount:${local.sa_email}"
+resource "google_organization_iam_member" "sa_org_bindings" {
+  # Create no org bindings if scoped, otherwise create all role bindings
+  for_each = local.scoped_deployment ? {} : local.roles
+  org_id   = var.organisation_id
+  role     = each.value
+  member   = module.bound_service_account.sa_member
 }
 
-
+module "scoped_project_bindings" {
+  source   = "../../scoped_project_bindings"
+  for_each = local.roles
+  role_id  = each.value
+  projects = var.allowed_projects
+  member   = module.bound_service_account.sa_member
+}
 
 # **DT Managed Infrastructure**
 

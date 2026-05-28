@@ -4,6 +4,13 @@ locals {
   sa_email        = module.bound_service_account.sa_email
   role_prefix     = var.custom_prefix != "" ? "${var.custom_prefix}." : ""
   bucket_prefix   = var.custom_prefix != "" ? "${var.custom_prefix}-" : ""
+  roles = {
+    "service_usage_consumer"           = "roles/serviceusage.serviceUsageConsumer"
+    "cloudasset_viewer"                = "roles/cloudasset.viewer"
+    "principal_access_boundary_viewer" = "roles/iam.principalAccessBoundaryViewer"
+    "enumeration_role"                 = google_organization_iam_custom_role.sa_org_enumeration_role.name
+  }
+  scoped_deployment = length(var.allowed_projects) != 0
 }
 
 module "bound_service_account" {
@@ -14,22 +21,22 @@ module "bound_service_account" {
   service_account_display_name = local.sa_display_name
 }
 
-resource "google_organization_iam_member" "sa_org_service_usage_consumer" {
-  org_id = var.organisation_id
-  role   = "roles/serviceusage.serviceUsageConsumer"
-  member = module.bound_service_account.sa_member
+# If the customer elects to use scoped_deployment, then we use the scoped_project_bindings module
+# Otherwise we bind the roles at the organisation level
+
+module "scoped_project_bindings" {
+  source   = "../../scoped_project_bindings"
+  for_each = local.roles
+  role_id  = each.value
+  projects = var.allowed_projects
+  member   = module.bound_service_account.sa_member
 }
 
-resource "google_organization_iam_member" "sa_org_cloud_assets_viewer" {
-  org_id = var.organisation_id
-  role   = "roles/cloudasset.viewer"
-  member = module.bound_service_account.sa_member
-}
-
-resource "google_organization_iam_member" "sa_org_principal_access_bounday_viewer" {
-  org_id = var.organisation_id
-  role   = "roles/iam.principalAccessBoundaryViewer"
-  member = module.bound_service_account.sa_member
+resource "google_organization_iam_member" "sa_org_bindings" {
+  for_each = local.scoped_deployment ? {} : local.roles
+  org_id   = var.organisation_id
+  role     = each.value
+  member   = module.bound_service_account.sa_member
 }
 
 ## Cloud Core Role
@@ -40,22 +47,20 @@ resource "google_organization_iam_custom_role" "sa_org_enumeration_role" {
   org_id      = var.organisation_id
   title       = "Darktrace Cloud Core Enumeration Role"
   description = "Darktrace Role giving the Core Service Account access to asset API's"
-  permissions = [
-    "compute.backendServices.list",       # Extra data for Internal Load Balancers
-    "bigquery.datasets.get",              # Extra data for BigQuery Datasets misconfigurations
-    "compute.instanceGroups.get",         # Get instance group details
-    "compute.instanceGroups.list",        # Get instances linked to unmanaged instance groups
-    "compute.instanceGroupManagers.get",  # Get managed instance group details
-    "compute.instanceGroupManagers.list", # Get instances linked to managed instance groups
-
-  ]
-}
-
-# Binds the Service Account to the newly created role
-resource "google_organization_iam_member" "sa_org_enumeration_assignment" {
-  org_id = var.organisation_id
-  role   = google_organization_iam_custom_role.sa_org_enumeration_role.name
-  member = module.bound_service_account.sa_member
+  permissions = concat([
+    "compute.backendServices.list",      # Extra data for Internal Load Balancers
+    "bigquery.datasets.get",             # Extra data for BigQuery Datasets misconfigurations
+    "compute.instanceGroups.get",        # Get instance group details
+    "compute.instanceGroups.list",       # Get instances linked to unmanaged instance groups
+    "compute.instanceGroupManagers.get", # Get managed instance group details
+    "compute.instanceGroupManagers.list" # Get instances linked to managed instance groups
+    ],
+    # The Org cloudasset.viewer permission gives us access to projects and folders.
+    # In scoped deployments we lack permission to view projects and folders, which are org-level resources
+    local.scoped_deployment ? [
+      "resourcemanager.projects.get",
+    ] : []
+  )
 }
 
 ## Enumeration Bucket Resources
@@ -71,6 +76,7 @@ resource "google_project_iam_custom_role" "sa_project_cloud_core_bucket_role" {
     "storage.objects.get",
     "storage.objects.delete"
   ]
+
 }
 
 # Allow reading objects, but only in the cloud core bucket
