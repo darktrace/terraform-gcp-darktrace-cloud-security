@@ -8,8 +8,9 @@ provider "google-beta" {
 }
 
 locals {
-  wif_principal     = module.wif_principal_formatter.principal
-  allowed_projects  = concat(tolist(var.allowed_projects), [var.project_id])
+  wif_principal = module.wif_principal_formatter.principal
+  # Add the target project to allowed_projects only if allowed_projects is defined
+  allowed_projects  = length(var.allowed_projects) > 0 ? concat(tolist(var.allowed_projects), [var.project_id]) : var.allowed_projects
   scoped_deployment = length(var.allowed_projects) != 0
   project_number    = data.google_project.target_project.number
   organisation_id   = data.google_project.target_project.org_id
@@ -58,6 +59,7 @@ module "flow_logs_gcp" {
   flow_logs_subscription = var.flow_logs_subscription
   custom_prefix          = var.custom_prefix
   logging_sink_filter    = var.logging_sink_filter
+  allowed_projects       = local.allowed_projects
 }
 
 module "cloud_respond_gcp" {

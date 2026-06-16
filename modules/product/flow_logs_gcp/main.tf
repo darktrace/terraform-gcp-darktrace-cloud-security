@@ -13,6 +13,7 @@ locals {
     "serviceusage_service_usage_admin" = "roles/serviceusage.serviceUsageAdmin"
   }
   scoped_deployment = length(var.allowed_projects) != 0
+  sink_filter       = replace(var.logging_sink_filter, "\\u0022", "\"")
 }
 
 module "bound_service_account" {
@@ -28,7 +29,7 @@ module "bound_service_account" {
 resource "google_project_iam_member" "sa_project_pubsub" {
   project = local.flow_logs_project
   role    = "roles/pubsub.subscriber"
-  member  = "serviceAccount:${local.sa_email}"
+  member  = module.bound_service_account.sa_member
 }
 
 # As far as we know, we only need these permissions for service usage admin
@@ -64,20 +65,37 @@ resource "google_pubsub_subscription" "flow_logs_sub" {
 }
 
 resource "google_logging_organization_sink" "flow_logs_org_sink" {
-  count            = local.dt_managed ? 1 : 0
+  # Org-level sink for unscoped deployments — captures logs from all child projects
+  count            = local.dt_managed && !local.scoped_deployment ? 1 : 0
   name             = "${local.role_prefix}darktrace-flow-logs-sink"
   org_id           = var.organisation_id
   description      = "Routes VPC Flow Logs to Darktrace Flowlogs"
   destination      = "pubsub.googleapis.com/${google_pubsub_topic.flow_logs_topic[0].id}"
-  filter           = replace(var.logging_sink_filter, "\\u0022", "\"")
+  filter           = local.sink_filter
   include_children = true
 }
 
+resource "google_logging_project_sink" "flow_logs_project_sink" {
+  # Per-project sinks for scoped deployments — one sink per allowed project
+  for_each    = local.dt_managed && local.scoped_deployment ? var.allowed_projects : []
+  project     = each.value
+  name        = "${local.role_prefix}darktrace-flow-logs-sink"
+  destination = "pubsub.googleapis.com/${google_pubsub_topic.flow_logs_topic[0].id}"
+  filter      = local.sink_filter
+}
+
 # The writer identity of the sink must be able to write logs in the target project
-# Existing setup assumes that the logs are properly written, so we don't need to add any role assignments
 resource "google_project_iam_member" "sink_writer_iam" {
-  count   = local.dt_managed ? 1 : 0
+  count   = local.dt_managed && !local.scoped_deployment ? 1 : 0
   project = local.flow_logs_project
   role    = "roles/pubsub.publisher"
   member  = google_logging_organization_sink.flow_logs_org_sink[0].writer_identity
+}
+
+resource "google_project_iam_member" "sink_writer_iam_scoped" {
+  # Each project sink has its own writer identity that needs publish access
+  for_each = local.dt_managed && local.scoped_deployment ? var.allowed_projects : []
+  project  = var.project_id
+  role     = "roles/pubsub.publisher"
+  member   = google_logging_project_sink.flow_logs_project_sink[each.key].writer_identity
 }

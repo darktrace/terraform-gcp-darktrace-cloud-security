@@ -75,7 +75,7 @@ resource "google_organization_iam_custom_role" "fai_iam_org_role" {
 resource "google_organization_iam_member" "sa_org_role_assignment" {
   org_id = var.organisation_id
   role   = google_organization_iam_custom_role.fai_iam_org_role.name
-  member = "serviceAccount:${local.sa_email}"
+  member = module.bound_service_account.sa_member
 }
 
 resource "google_organization_iam_member" "default_compute_sa_role_assignment" {

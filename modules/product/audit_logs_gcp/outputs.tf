@@ -18,3 +18,13 @@ output "org_bindings_created" {
   value       = length(google_organization_iam_member.sa_org_bindings)
   description = "Number of org-level role bindings created. Should be 0 for scoped deployments. Used for unit testing"
 }
+
+output "project_sinks_created" {
+  value       = length(google_logging_project_sink.audit_logs_project_sink)
+  description = "Number of per-project logging sinks created. Used for unit testing"
+}
+
+output "org_sinks_created" {
+  value       = length(google_logging_organization_sink.audit_logs_org_sink)
+  description = "Number of org-level logging sinks created. Used for unit testing"
+}

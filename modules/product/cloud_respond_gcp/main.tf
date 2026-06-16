@@ -50,6 +50,16 @@ resource "google_organization_iam_custom_role" "sa_org_response_role" {
     "iam.serviceAccounts.actAs",          # Required for patching services
     "run.services.get",                   # Get a cloud service
     "run.services.update",                # Update a cloud service
+    "container.clusters.get",             # Required for getting clusters and node pools
+    "container.clusters.update",          # Required for updating clusters and node pools
+    "resourcemanager.projects.getIamPolicy",
+    "resourcemanager.projects.setIamPolicy",
+    "resourcemanager.organizations.getIamPolicy",
+    "resourcemanager.organizations.setIamPolicy",
+    "iam.serviceAccounts.disable",
+    "iam.serviceAccounts.enable",
+    "iam.serviceAccountKeys.disable",
+    "iam.serviceAccountKeys.enable",
   ]
 }
 
