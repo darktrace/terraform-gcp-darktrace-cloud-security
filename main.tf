@@ -13,11 +13,28 @@ locals {
   allowed_projects  = length(var.allowed_projects) > 0 ? concat(tolist(var.allowed_projects), [var.project_id]) : var.allowed_projects
   scoped_deployment = length(var.allowed_projects) != 0
   project_number    = data.google_project.target_project.number
-  organisation_id   = data.google_project.target_project.org_id
+  # The organisation is typically the top-most ancestor
+  organisation = data.google_project_ancestry.target_project_ancestry.ancestors[
+    length(data.google_project_ancestry.target_project_ancestry.ancestors) - 1
+  ]
+  organisation_id = local.organisation.id
+}
+
+check "organisation_check" {
+  # Fault tolerance, if we lack permissions we don't want to send bad data to the backend
+  # If the organization ID is undefined or incorrect we may end up with global bucket collision
+  assert {
+    condition     = local.organisation.type == "organization"
+    error_message = "Failed to retrieve organisation id. Principal authorisation is insufficient or blocked by a deny policy"
+  }
 }
 
 data "google_project" "target_project" {
   project_id = var.project_id
+}
+
+data "google_project_ancestry" "target_project_ancestry" {
+  project = var.project_id
 }
 
 module "wif" {
