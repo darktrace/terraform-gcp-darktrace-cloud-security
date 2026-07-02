@@ -25,13 +25,8 @@ output "organisation_id" {
   value = local.organisation_id
 }
 
-output "flowlogs_dt_managed" {
-  value       = contains(var.products, "flow-logs-gcp") ? module.flow_logs_gcp[0].flow_logs_dt_managed : "not implemented"
-  description = "Darktrace Flow Analysis is `dt_managed` if Darktrace creates its own infrastructure. Not implemented if flowlogs is not enabled"
-}
-
 output "fai_investigations_bucket" {
-  value       = contains(var.products, "cado-gcp") ? module.fai_gcp[0].fai_gcs_bucket : "not implemented"
+  value       = contains(var.products, "cado-gcp") ? module.fai_gcp[0].fai_gcs_bucket : null
   description = "Name of the GCS bucket used by default for /Forensic Acquisition & Investigation"
 }
 

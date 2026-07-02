@@ -1,11 +1,8 @@
 resource "google_iam_workload_identity_pool" "darktrace_pool" {
-  provider = google-beta
-
   workload_identity_pool_id = "darktrace-workload-identity-pool"
   display_name              = "Darktrace WIP"
   description               = "Darktrace uses Workload Identity Federation to obtain authorisation to access GCP resources"
   disabled                  = false
-  mode                      = "FEDERATION_ONLY"
 }
 
 resource "google_iam_workload_identity_pool_provider" "darktrace_aws_provider" {

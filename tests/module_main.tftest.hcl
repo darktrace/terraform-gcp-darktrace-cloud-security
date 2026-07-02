@@ -1,5 +1,4 @@
 mock_provider "google" {}
-mock_provider "google-beta" {}
 
 run "setup_tests" {
   module {

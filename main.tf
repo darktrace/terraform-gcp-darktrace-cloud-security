@@ -2,10 +2,6 @@ provider "google" {
   project = var.project_id
   region  = var.region
 }
-provider "google-beta" {
-  project = var.project_id
-  region  = var.region
-}
 
 locals {
   wif_principal = module.wif_principal_formatter.principal
