@@ -11,6 +11,7 @@ locals {
     "browser"                          = "roles/browser"
     "networkmanagement_admin"          = "roles/networkmanagement.admin"
     "serviceusage_service_usage_admin" = "roles/serviceusage.serviceUsageAdmin"
+    "flow_logs_role"                   = google_organization_iam_custom_role.sa_org_flow_logs_role.name
   }
   scoped_deployment = length(var.allowed_projects) != 0
   sink_filter       = replace(var.logging_sink_filter, "\\u0022", "\"")
@@ -30,6 +31,19 @@ resource "google_project_iam_member" "sa_project_pubsub" {
   project = local.flow_logs_project
   role    = "roles/pubsub.subscriber"
   member  = module.bound_service_account.sa_member
+}
+
+resource "google_organization_iam_custom_role" "sa_org_flow_logs_role" {
+  role_id     = "${local.role_prefix}darktrace.flowAnalysisRole"
+  org_id      = var.organisation_id
+  title       = "Darktrace Flow Analysis Role"
+  description = "Permissions for Darktrace ⁄ CLOUD to consume DNS Flow Logs"
+  permissions = [
+    "dns.policies.get", # Reading DNS Policies if they exist, and create them if not
+    "dns.policies.list",
+    "dns.policies.create",
+    "logging.logEntries.list" # Consume DNS Events
+  ]
 }
 
 # As far as we know, we only need these permissions for service usage admin
