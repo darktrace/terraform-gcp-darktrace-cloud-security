@@ -20,7 +20,7 @@ run "test_main" {
   variables {
     project_id     = run.setup_tests.project_id
     products       = ["cloud-security-gcp", "flow-logs-gcp", "cloud-respond-gcp", "audit-logs-gcp", "fai-gcp"]
-    region         = "europe-west2"
+    region         = run.setup_tests.region
     aws_account_id = run.setup_tests.aws_account_id
     customer_id    = run.setup_tests.customer_id
     deployment_id  = run.setup_tests.deployment_id

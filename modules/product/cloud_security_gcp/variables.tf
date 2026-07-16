@@ -26,8 +26,7 @@ variable "custom_prefix" {
 
 variable "bucket_location" {
   type        = string
-  description = "The location in which to create the enumeration export bucket."
-  default     = "EU"
+  description = "The GCS Bucket creation location"
 }
 
 variable "create_core_bucket" {

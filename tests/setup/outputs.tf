@@ -36,3 +36,8 @@ output "deployment_id" {
   value       = local.deployment_id
   description = "The customer's deployment ID, used in the principal for Workload Identity Federation"
 }
+
+output "region" {
+  value       = "europe-west2"
+  description = "The region for all region-scoped resources"
+}

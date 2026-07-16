@@ -21,6 +21,7 @@ run "test_cloud_security_bucket" {
     principal          = run.setup_tests.sa_principal
     custom_prefix      = ""
     create_core_bucket = true
+    bucket_location    = run.setup_tests.region
   }
 
   assert {
@@ -54,6 +55,7 @@ run "test_cloud_security_no_bucket" {
     principal          = run.setup_tests.sa_principal
     custom_prefix      = ""
     create_core_bucket = false
+    bucket_location    = run.setup_tests.region
   }
 
   assert {

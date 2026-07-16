@@ -61,6 +61,7 @@ module "cloud_security_gcp" {
   allowed_projects              = local.allowed_projects
   create_core_bucket            = var.create_core_bucket
   enable_core_bucket_versioning = var.enable_core_bucket_versioning
+  bucket_location               = var.region
 }
 
 module "flow_logs_gcp" {

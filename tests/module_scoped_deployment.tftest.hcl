@@ -61,6 +61,7 @@ run "test_cloud_security_scoped_deployment" {
     principal        = run.setup_tests.sa_principal
     allowed_projects = run.setup_tests.allowed_projects
     custom_prefix    = ""
+    bucket_location  = run.setup_tests.region
   }
 
   assert {
