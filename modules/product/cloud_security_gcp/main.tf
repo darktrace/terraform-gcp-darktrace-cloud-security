@@ -48,12 +48,13 @@ resource "google_organization_iam_custom_role" "sa_org_enumeration_role" {
   title       = "Darktrace Cloud Core Enumeration Role"
   description = "Darktrace Role giving the Core Service Account access to asset API's"
   permissions = concat([
-    "compute.backendServices.list",      # Extra data for Internal Load Balancers
-    "bigquery.datasets.get",             # Extra data for BigQuery Datasets misconfigurations
-    "compute.instanceGroups.get",        # Get instance group details
-    "compute.instanceGroups.list",       # Get instances linked to unmanaged instance groups
-    "compute.instanceGroupManagers.get", # Get managed instance group details
-    "compute.instanceGroupManagers.list" # Get instances linked to managed instance groups
+    "compute.backendServices.list",       # Extra data for Internal Load Balancers
+    "bigquery.datasets.get",              # Extra data for BigQuery Datasets misconfigurations
+    "compute.instanceGroups.get",         # Get instance group details
+    "compute.instanceGroups.list",        # Get instances linked to unmanaged instance groups
+    "compute.instanceGroupManagers.get",  # Get managed instance group details
+    "compute.instanceGroupManagers.list", # Get instances linked to managed instance groups
+    "cloudasset.assets.exportResource"    # Export resource data via Cloud Asset API
     ],
     # The Org cloudasset.viewer permission gives us access to projects and folders.
     # In scoped deployments we lack permission to view projects and folders, which are org-level resources
