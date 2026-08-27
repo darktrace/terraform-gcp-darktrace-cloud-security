@@ -3,7 +3,10 @@ locals {
   sa_display_name = "Darktrace /CLOUD Audit Logs"
   # add a trailing dot to match GCP recommended syntax
   asset_prefix = var.custom_prefix != "" ? "${var.custom_prefix}." : ""
-  roles = {
+  # Predefined roles cannot be defined per project, so they are bound as-is:
+  # at the organisation level when unscoped, per project when scoped.
+  # This product has no Darktrace custom role, so there is nothing to scope
+  predefined_roles = {
     "logging_private_log_viewer" = "roles/logging.privateLogViewer"
   }
   scoped_deployment     = length(var.allowed_projects) != 0
@@ -25,7 +28,7 @@ module "bound_service_account" {
 
 resource "google_organization_iam_member" "sa_org_bindings" {
   # Create no org bindings if scoped, otherwise create all role bindings
-  for_each = local.scoped_deployment ? {} : local.roles
+  for_each = local.scoped_deployment ? {} : local.predefined_roles
   org_id   = var.organisation_id
   role     = each.value
   member   = module.bound_service_account.sa_member
@@ -33,7 +36,7 @@ resource "google_organization_iam_member" "sa_org_bindings" {
 
 module "scoped_project_bindings" {
   source   = "../../scoped_project_bindings"
-  for_each = local.roles
+  for_each = local.predefined_roles
   role_id  = each.value
   projects = var.allowed_projects
   member   = module.bound_service_account.sa_member

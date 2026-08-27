@@ -4,13 +4,41 @@ locals {
   sa_email        = module.bound_service_account.sa_email
   role_prefix     = var.custom_prefix != "" ? "${var.custom_prefix}." : ""
   bucket_prefix   = var.custom_prefix != "" ? "${var.custom_prefix}-" : ""
-  roles = {
+
+  scoped_deployment = length(var.allowed_projects) != 0
+
+  # Predefined roles cannot be defined per project, so they are bound as-is:
+  # at the organisation level when unscoped, per project when scoped
+  predefined_roles = {
     "service_usage_consumer"           = "roles/serviceusage.serviceUsageConsumer"
     "cloudasset_viewer"                = "roles/cloudasset.viewer"
     "principal_access_boundary_viewer" = "roles/iam.principalAccessBoundaryViewer"
-    "enumeration_role"                 = google_organization_iam_custom_role.sa_org_enumeration_role.name
   }
-  scoped_deployment = length(var.allowed_projects) != 0
+
+  ### Role Parameters
+  ### Reused for scoped vs org roles
+
+  # We use a separate role for enumeration from the storage role, as the storage role has a strict condition
+  role_id          = "${local.role_prefix}darktrace.cloudCoreEnumerationRole"
+  role_title       = "Darktrace Cloud Core Enumeration Role"
+  role_description = "Darktrace Role giving the Core Service Account access to asset API's"
+  role_permissions = [
+    "compute.backendServices.list",       # Extra data for Internal Load Balancers
+    "bigquery.datasets.get",              # Extra data for BigQuery Datasets misconfigurations
+    "compute.instanceGroups.get",         # Get instance group details
+    "compute.instanceGroups.list",        # Get instances linked to unmanaged instance groups
+    "compute.instanceGroupManagers.get",  # Get managed instance group details
+    "compute.instanceGroupManagers.list", # Get instances linked to managed instance groups
+    "cloudasset.assets.exportResource",   # Export resource data via Cloud Asset API
+    "compute.projects.get"                # Get project metadata for compute resources
+  ]
+
+  # The org-level cloudasset.viewer binding gives us access to projects and folders.
+  # Scoped deployments have no org-level binding, so project visibility must be granted
+  # explicitly. Only added to the per-project roles
+  project_only_permissions = [
+    "resourcemanager.projects.get",
+  ]
 }
 
 module "bound_service_account" {
@@ -21,47 +49,57 @@ module "bound_service_account" {
   service_account_display_name = local.sa_display_name
 }
 
-# If the customer elects to use scoped_deployment, then we use the scoped_project_bindings module
-# Otherwise we bind the roles at the organisation level
+# If the customer elects to use scoped_deployment, then we bind roles in each allowed
+# project. Otherwise we bind the roles at the organisation level
+
+## PREDEFINED ROLES
 
 module "scoped_project_bindings" {
   source   = "../../scoped_project_bindings"
-  for_each = local.roles
+  for_each = local.predefined_roles
   role_id  = each.value
   projects = var.allowed_projects
   member   = module.bound_service_account.sa_member
 }
 
 resource "google_organization_iam_member" "sa_org_bindings" {
-  for_each = local.scoped_deployment ? {} : local.roles
+  for_each = local.scoped_deployment ? {} : local.predefined_roles
   org_id   = var.organisation_id
   role     = each.value
   member   = module.bound_service_account.sa_member
 }
 
-## Cloud Core Role
+## Cloud Core Role
 
-# We use a separate role for enumeration from the storage role, as the storage role has a strict condition
+## ORG IAM
 resource "google_organization_iam_custom_role" "sa_org_enumeration_role" {
-  role_id     = "${local.role_prefix}darktrace.cloudCoreEnumerationRole"
+  count       = local.scoped_deployment ? 0 : 1
+  role_id     = local.role_id
   org_id      = var.organisation_id
-  title       = "Darktrace Cloud Core Enumeration Role"
-  description = "Darktrace Role giving the Core Service Account access to asset API's"
-  permissions = concat([
-    "compute.backendServices.list",       # Extra data for Internal Load Balancers
-    "bigquery.datasets.get",              # Extra data for BigQuery Datasets misconfigurations
-    "compute.instanceGroups.get",         # Get instance group details
-    "compute.instanceGroups.list",        # Get instances linked to unmanaged instance groups
-    "compute.instanceGroupManagers.get",  # Get managed instance group details
-    "compute.instanceGroupManagers.list", # Get instances linked to managed instance groups
-    "cloudasset.assets.exportResource"    # Export resource data via Cloud Asset API
-    ],
-    # The Org cloudasset.viewer permission gives us access to projects and folders.
-    # In scoped deployments we lack permission to view projects and folders, which are org-level resources
-    local.scoped_deployment ? [
-      "resourcemanager.projects.get",
-    ] : []
-  )
+  title       = local.role_title
+  description = local.role_description
+  permissions = local.role_permissions
+}
+
+resource "google_organization_iam_member" "sa_org_enumeration_binding" {
+  # Create no org bindings if scoped, otherwise bind the org role
+  count  = local.scoped_deployment ? 0 : 1
+  org_id = var.organisation_id
+  role   = google_organization_iam_custom_role.sa_org_enumeration_role[0].name
+  member = module.bound_service_account.sa_member
+}
+
+## PROJECT IAM
+
+## One enumeration role per scoped project
+module "scoped_project_custom_role" {
+  source      = "../../scoped_project_custom_role"
+  projects    = var.allowed_projects
+  role_id     = local.role_id
+  member      = module.bound_service_account.sa_member
+  title       = local.role_title
+  description = local.role_description
+  permissions = concat(local.role_permissions, local.project_only_permissions)
 }
 
 ## Enumeration Bucket Resources

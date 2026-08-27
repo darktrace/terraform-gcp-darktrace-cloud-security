@@ -2,19 +2,40 @@ locals {
   sa_name           = "darktrace-flow-analysis"
   sa_display_name   = "Darktrace /CLOUD Flow Analysis"
   sa_email          = module.bound_service_account.sa_email
-  org_role_id       = "darktrace_flow_analysis_org_role"
   dt_managed        = var.flow_logs_subscription == ""
   flow_logs_project = local.dt_managed ? var.project_id : regex("^projects/([^/]+)/subscriptions/.*$", var.flow_logs_subscription)[0]
   role_prefix       = var.custom_prefix != "" ? "${var.custom_prefix}." : ""
-  roles = {
+
+  scoped_deployment = length(var.allowed_projects) != 0
+
+  # Predefined roles cannot be defined per project, so they are bound as-is:
+  # at the organisation level when unscoped, per project when scoped
+  # As far as we know, we only need these permissions for service usage admin
+  # networkmanagement.vpcflowlogsconfigs.create
+  # networkmanagement.vpcflowlogsconfigs.list
+  predefined_roles = {
     "compute_network_viewer"           = "roles/compute.networkViewer"
     "browser"                          = "roles/browser"
     "networkmanagement_admin"          = "roles/networkmanagement.admin"
     "serviceusage_service_usage_admin" = "roles/serviceusage.serviceUsageAdmin"
-    "flow_logs_role"                   = google_organization_iam_custom_role.sa_org_flow_logs_role.name
   }
-  scoped_deployment = length(var.allowed_projects) != 0
-  sink_filter       = replace(var.logging_sink_filter, "\\u0022", "\"")
+
+  ### Role Parameters
+  ### Reused for scoped vs org roles
+  ### No project-only permissions are needed: roles/browser is bound in every
+  ### allowed project and already grants project visibility
+
+  role_id          = "${local.role_prefix}darktrace.flowAnalysisRole"
+  role_title       = "Darktrace Flow Analysis Role"
+  role_description = "Permissions for Darktrace ⁄ CLOUD to consume DNS Flow Logs"
+  role_permissions = [
+    "dns.policies.get", # Reading DNS Policies if they exist, and create them if not
+    "dns.policies.list",
+    "dns.policies.create",
+    "logging.logEntries.list" # Consume DNS Events
+  ]
+
+  sink_filter = replace(var.logging_sink_filter, "\\u0022", "\"")
 }
 
 module "bound_service_account" {
@@ -33,25 +54,33 @@ resource "google_project_iam_member" "sa_project_pubsub" {
   member  = module.bound_service_account.sa_member
 }
 
+## FLOW ANALYSIS ROLE
+## Created at the organisation level for unscoped deployments, and once per allowed
+## project for scoped deployments. Both paths share local.role_permissions
+
+## ORG IAM
 resource "google_organization_iam_custom_role" "sa_org_flow_logs_role" {
-  role_id     = "${local.role_prefix}darktrace.flowAnalysisRole"
+  count       = local.scoped_deployment ? 0 : 1
+  role_id     = local.role_id
   org_id      = var.organisation_id
-  title       = "Darktrace Flow Analysis Role"
-  description = "Permissions for Darktrace ⁄ CLOUD to consume DNS Flow Logs"
-  permissions = [
-    "dns.policies.get", # Reading DNS Policies if they exist, and create them if not
-    "dns.policies.list",
-    "dns.policies.create",
-    "logging.logEntries.list" # Consume DNS Events
-  ]
+  title       = local.role_title
+  description = local.role_description
+  permissions = local.role_permissions
 }
 
-# As far as we know, we only need these permissions for service usage admin
-# networkmanagement.vpcflowlogsconfigs.create
-# networkmanagement.vpcflowlogsconfigs.list
+resource "google_organization_iam_member" "sa_org_flow_logs_binding" {
+  # Create no org bindings if scoped, otherwise bind the org role
+  count  = local.scoped_deployment ? 0 : 1
+  org_id = var.organisation_id
+  role   = google_organization_iam_custom_role.sa_org_flow_logs_role[0].name
+  member = module.bound_service_account.sa_member
+}
+
+## PREDEFINED ROLES
+
 resource "google_organization_iam_member" "sa_org_bindings" {
   # Create no org bindings if scoped, otherwise create all role bindings
-  for_each = local.scoped_deployment ? {} : local.roles
+  for_each = local.scoped_deployment ? {} : local.predefined_roles
   org_id   = var.organisation_id
   role     = each.value
   member   = module.bound_service_account.sa_member
@@ -59,10 +88,23 @@ resource "google_organization_iam_member" "sa_org_bindings" {
 
 module "scoped_project_bindings" {
   source   = "../../scoped_project_bindings"
-  for_each = local.roles
+  for_each = local.predefined_roles
   role_id  = each.value
   projects = var.allowed_projects
   member   = module.bound_service_account.sa_member
+}
+
+## PROJECT IAM
+
+## One flow analysis role per scoped project
+module "scoped_project_custom_role" {
+  source      = "../../scoped_project_custom_role"
+  projects    = var.allowed_projects
+  role_id     = local.role_id
+  member      = module.bound_service_account.sa_member
+  title       = local.role_title
+  description = local.role_description
+  permissions = local.role_permissions
 }
 
 # **DT Managed Infrastructure**

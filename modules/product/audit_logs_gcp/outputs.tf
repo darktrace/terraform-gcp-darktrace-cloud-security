@@ -10,8 +10,8 @@ output "project_bindings_created" {
 }
 
 output "roles" {
-  value       = local.roles
-  description = "The roles bound at either the project or organisation level. Used for unit testing"
+  value       = values(local.predefined_roles)
+  description = "The distinct roles granted to the service account, bound at either the project or organisation level. Used for unit testing"
 }
 
 output "org_bindings_created" {
