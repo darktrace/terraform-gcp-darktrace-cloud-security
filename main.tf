@@ -65,15 +65,17 @@ module "cloud_security_gcp" {
 }
 
 module "flow_logs_gcp" {
-  count                  = contains(var.products, "flow-logs-gcp") ? 1 : 0
-  source                 = "./modules/product/flow_logs_gcp"
-  organisation_id        = local.organisation_id
-  principal              = local.wif_principal
-  project_id             = var.project_id
-  flow_logs_subscription = var.flow_logs_subscription
-  custom_prefix          = var.custom_prefix
-  logging_sink_filter    = var.logging_sink_filter
-  allowed_projects       = local.allowed_projects
+  count                   = contains(var.products, "flow-logs-gcp") ? 1 : 0
+  source                  = "./modules/product/flow_logs_gcp"
+  organisation_id         = local.organisation_id
+  principal               = local.wif_principal
+  project_id              = var.project_id
+  flow_logs_subscription  = var.flow_logs_subscription
+  dns_subscription        = var.dns_subscription
+  custom_prefix           = var.custom_prefix
+  logging_sink_filter     = var.logging_sink_filter
+  dns_logging_sink_filter = var.dns_logging_sink_filter
+  allowed_projects        = local.allowed_projects
 }
 
 module "cloud_respond_gcp" {

@@ -31,11 +31,21 @@ output "org_bindings_created" {
 }
 
 output "project_sinks_created" {
-  value       = length(google_logging_project_sink.flow_logs_project_sink)
+  value       = module.flow_logs_pubsub.project_sinks_created
   description = "Number of per-project logging sinks created. Used for unit testing"
 }
 
 output "org_sinks_created" {
-  value       = length(google_logging_organization_sink.flow_logs_org_sink)
+  value       = module.flow_logs_pubsub.org_sinks_created
   description = "Number of org-level logging sinks created. Used for unit testing"
+}
+
+output "dns_project_sinks_created" {
+  value       = module.dns_logs_pubsub.project_sinks_created
+  description = "Number of per-project DNS logging sinks created. Used for unit testing"
+}
+
+output "dns_org_sinks_created" {
+  value       = module.dns_logs_pubsub.org_sinks_created
+  description = "Number of org-level DNS logging sinks created. Used for unit testing"
 }

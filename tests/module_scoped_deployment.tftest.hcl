@@ -106,11 +106,21 @@ run "test_flow_logs_scoped_deployment" {
 
   assert {
     condition     = output.org_sinks_created == 0
-    error_message = "Org-level sinks should not be created in scoped deployments"
+    error_message = "Org-level flow logs sinks should not be created in scoped deployments"
   }
 
   assert {
     condition     = output.project_sinks_created == length(run.setup_tests.allowed_projects)
-    error_message = "Per-project sinks should be created for each allowed project"
+    error_message = "Per-project flow logs sinks should be created for each allowed project"
+  }
+
+  assert {
+    condition     = output.dns_org_sinks_created == 0
+    error_message = "Org-level DNS sinks should not be created in scoped deployments"
+  }
+
+  assert {
+    condition     = output.dns_project_sinks_created == length(run.setup_tests.allowed_projects)
+    error_message = "Per-project DNS sinks should be created for each allowed project"
   }
 }

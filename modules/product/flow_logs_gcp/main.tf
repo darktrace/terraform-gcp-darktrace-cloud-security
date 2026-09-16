@@ -2,8 +2,9 @@ locals {
   sa_name           = "darktrace-flow-analysis"
   sa_display_name   = "Darktrace /CLOUD Flow Analysis"
   sa_email          = module.bound_service_account.sa_email
-  dt_managed        = var.flow_logs_subscription == ""
-  flow_logs_project = local.dt_managed ? var.project_id : regex("^projects/([^/]+)/subscriptions/.*$", var.flow_logs_subscription)[0]
+  dt_managed        = var.flow_logs_subscription == "" && var.dns_subscription == ""
+  flow_logs_project = var.flow_logs_subscription == "" ? var.project_id : regex("^projects/([^/]+)/subscriptions/.*$", var.flow_logs_subscription)[0]
+  dns_logs_project  = var.dns_subscription == "" ? var.project_id : regex("^projects/([^/]+)/subscriptions/.*$", var.dns_subscription)[0]
   role_prefix       = var.custom_prefix != "" ? "${var.custom_prefix}." : ""
 
   scoped_deployment = length(var.allowed_projects) != 0
@@ -35,7 +36,8 @@ locals {
     "logging.logEntries.list" # Consume DNS Events
   ]
 
-  sink_filter = replace(var.logging_sink_filter, "\\u0022", "\"")
+  sink_filter     = replace(var.logging_sink_filter, "\\u0022", "\"")
+  dns_sink_filter = replace(var.dns_logging_sink_filter, "\\u0022", "\"")
 }
 
 module "bound_service_account" {
@@ -46,13 +48,6 @@ module "bound_service_account" {
   service_account_display_name = local.sa_display_name
 }
 
-
-# Give subscriber role in the project with the subscription
-resource "google_project_iam_member" "sa_project_pubsub" {
-  project = local.flow_logs_project
-  role    = "roles/pubsub.subscriber"
-  member  = module.bound_service_account.sa_member
-}
 
 ## FLOW ANALYSIS ROLE
 ## Created at the organisation level for unscoped deployments, and once per allowed
@@ -108,50 +103,42 @@ module "scoped_project_custom_role" {
 }
 
 # **DT Managed Infrastructure**
+# The topic + subscription + logging sink + sink-writer IAM flow is shared with
+# audit_logs_gcp and is encapsulated in the pubsub_log_sink module.
 
-resource "google_pubsub_topic" "flow_logs_topic" {
-  count = local.dt_managed ? 1 : 0
-  name  = "darktrace-flowlogs-topic"
+module "flow_logs_pubsub" {
+  source            = "../../pubsub_log_sink"
+  enabled           = local.dt_managed
+  organisation_id   = var.organisation_id
+  allowed_projects  = var.allowed_projects
+  topic_name        = "darktrace-flowlogs-topic"
+  subscription_name = "darktrace-flow-logs-sub"
+  sink_name         = "${local.role_prefix}darktrace-flow-logs-sink"
+  sink_description  = "Routes VPC Flow Logs to Darktrace Flowlogs"
+  sink_filter       = local.sink_filter
+  publisher_project = local.flow_logs_project
+  # Subscriber access is granted in the subscription's project regardless of
+  # whether the DT-managed stack is created (customers may bring their own sub).
+  subscriber_member          = module.bound_service_account.sa_member
+  subscriber_project         = local.flow_logs_project
+  subscriber_binding_enabled = true
 }
 
-resource "google_pubsub_subscription" "flow_logs_sub" {
-  count = local.dt_managed ? 1 : 0
-  name  = "darktrace-flow-logs-sub"
-  topic = google_pubsub_topic.flow_logs_topic[0].id
-}
+# **DT Managed DNS Infrastructure**
 
-resource "google_logging_organization_sink" "flow_logs_org_sink" {
-  # Org-level sink for unscoped deployments — captures logs from all child projects
-  count            = local.dt_managed && !local.scoped_deployment ? 1 : 0
-  name             = "${local.role_prefix}darktrace-flow-logs-sink"
-  org_id           = var.organisation_id
-  description      = "Routes VPC Flow Logs to Darktrace Flowlogs"
-  destination      = "pubsub.googleapis.com/${google_pubsub_topic.flow_logs_topic[0].id}"
-  filter           = local.sink_filter
-  include_children = true
-}
-
-resource "google_logging_project_sink" "flow_logs_project_sink" {
-  # Per-project sinks for scoped deployments — one sink per allowed project
-  for_each    = local.dt_managed && local.scoped_deployment ? var.allowed_projects : []
-  project     = each.value
-  name        = "${local.role_prefix}darktrace-flow-logs-sink"
-  destination = "pubsub.googleapis.com/${google_pubsub_topic.flow_logs_topic[0].id}"
-  filter      = local.sink_filter
-}
-
-# The writer identity of the sink must be able to write logs in the target project
-resource "google_project_iam_member" "sink_writer_iam" {
-  count   = local.dt_managed && !local.scoped_deployment ? 1 : 0
-  project = local.flow_logs_project
-  role    = "roles/pubsub.publisher"
-  member  = google_logging_organization_sink.flow_logs_org_sink[0].writer_identity
-}
-
-resource "google_project_iam_member" "sink_writer_iam_scoped" {
-  # Each project sink has its own writer identity that needs publish access
-  for_each = local.dt_managed && local.scoped_deployment ? var.allowed_projects : []
-  project  = var.project_id
-  role     = "roles/pubsub.publisher"
-  member   = google_logging_project_sink.flow_logs_project_sink[each.key].writer_identity
+module "dns_logs_pubsub" {
+  source            = "../../pubsub_log_sink"
+  enabled           = local.dt_managed
+  organisation_id   = var.organisation_id
+  allowed_projects  = var.allowed_projects
+  topic_name        = "darktrace-dns-logs-topic"
+  subscription_name = "darktrace-dns-logs-sub"
+  sink_name         = "${local.role_prefix}darktrace-dns-logs-sink"
+  sink_description  = "Routes DNS Query Logs to Darktrace Flowlogs"
+  sink_filter       = local.dns_sink_filter
+  publisher_project = var.project_id
+  # DNS subscriber access is granted in the DNS subscription's project.
+  subscriber_member          = module.bound_service_account.sa_member
+  subscriber_project         = local.dns_logs_project
+  subscriber_binding_enabled = true
 }

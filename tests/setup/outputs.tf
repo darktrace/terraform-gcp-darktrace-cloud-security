@@ -7,6 +7,10 @@ output "pubsub_subscription" {
   value = "projects/my-pubsub-project-1234/subscriptions/test-sub"
 }
 
+output "dns_pubsub_subscription" {
+  value = "projects/my-dns-project-5678/subscriptions/dns-test-sub"
+}
+
 output "organisation_id" {
   value       = "12345678912"
   description = "An organisation ID"
