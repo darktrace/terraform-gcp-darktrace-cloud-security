@@ -39,6 +39,14 @@ locals {
   project_only_permissions = [
     "resourcemanager.projects.get",
   ]
+
+  dynamic_resource_maintenance_role_id          = "${local.role_prefix}darktrace.cloudCoreDynamicResourceMaintenanceRole"
+  dynamic_resource_maintenance_role_title       = "Darktrace Cloud Core Dynamic Resource Maintenance Role"
+  dynamic_resource_maintenance_role_description = "Darktrace Role letting the Core Service Account maintain deployment resources during the Refresh Structure job, including enabling required Google APIs"
+  dynamic_resource_maintenance_role_permissions = [
+    "serviceusage.services.get",    # Check whether a required API is already enabled
+    "serviceusage.services.enable", # Enable required APIs during the Refresh Structure job
+  ]
 }
 
 module "bound_service_account" {
@@ -100,6 +108,43 @@ module "scoped_project_custom_role" {
   title       = local.role_title
   description = local.role_description
   permissions = concat(local.role_permissions, local.project_only_permissions)
+}
+
+## Dynamic Resource Maintenance Role
+## The Refresh Structure job maintains deployment resources as this service account,
+## which includes enabling required Google APIs. Mirrors the enumeration role's dual
+## path: bound at the org level for unscoped deployments, once per allowed project for
+## scoped deployments.
+
+## ORG IAM
+resource "google_organization_iam_custom_role" "sa_org_dynamic_resource_maintenance_role" {
+  count       = local.scoped_deployment ? 0 : 1
+  role_id     = local.dynamic_resource_maintenance_role_id
+  org_id      = var.organisation_id
+  title       = local.dynamic_resource_maintenance_role_title
+  description = local.dynamic_resource_maintenance_role_description
+  permissions = local.dynamic_resource_maintenance_role_permissions
+}
+
+resource "google_organization_iam_member" "sa_org_dynamic_resource_maintenance_binding" {
+  # Create no org bindings if scoped, otherwise bind the org role
+  count  = local.scoped_deployment ? 0 : 1
+  org_id = var.organisation_id
+  role   = google_organization_iam_custom_role.sa_org_dynamic_resource_maintenance_role[0].name
+  member = module.bound_service_account.sa_member
+}
+
+## PROJECT IAM
+
+## One dynamic resource maintenance role per scoped project
+module "scoped_project_dynamic_resource_maintenance_role" {
+  source      = "../../scoped_project_custom_role"
+  projects    = var.allowed_projects
+  role_id     = local.dynamic_resource_maintenance_role_id
+  member      = module.bound_service_account.sa_member
+  title       = local.dynamic_resource_maintenance_role_title
+  description = local.dynamic_resource_maintenance_role_description
+  permissions = local.dynamic_resource_maintenance_role_permissions
 }
 
 ## Enumeration Bucket Resources

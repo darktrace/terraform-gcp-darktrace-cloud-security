@@ -5,7 +5,8 @@ output "sa_email" {
 output "project_bindings_created" {
   value = sum(concat(
     [for m in module.scoped_project_bindings : m.bindings_created],
-    [module.scoped_project_custom_role.bindings_created]
+    [module.scoped_project_custom_role.bindings_created],
+    [module.scoped_project_dynamic_resource_maintenance_role.bindings_created]
   ))
   description = "Number of project-level bindings created. Should be |roles| * |projects|. Used for unit testing"
 }
@@ -16,7 +17,7 @@ output "project_roles_created" {
 }
 
 output "roles" {
-  value       = concat(values(local.predefined_roles), [local.role_id])
+  value       = concat(values(local.predefined_roles), [local.role_id, local.dynamic_resource_maintenance_role_id])
   description = "The distinct roles granted to the service account, bound at either the project or organisation level. Used for unit testing"
 }
 
@@ -25,7 +26,7 @@ output "cloud_core_bucket_name" {
 }
 
 output "org_bindings_created" {
-  value = length(google_organization_iam_member.sa_org_bindings) + length(google_organization_iam_member.sa_org_enumeration_binding)
+  value = length(google_organization_iam_member.sa_org_bindings) + length(google_organization_iam_member.sa_org_enumeration_binding) + length(google_organization_iam_member.sa_org_dynamic_resource_maintenance_binding)
 
   description = "Number of org-level role bindings created. Should be 0 for scoped deployments. Used for unit testing"
 }
